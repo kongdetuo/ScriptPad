@@ -69,6 +69,8 @@ namespace ScriptPad
         public string Name { get; set; }
         public string Path { get; set; }
 
+        public string Text { get; private set; }
+
         private List<Reference> references;
 
         public IReadOnlyCollection<Reference> References => references;
@@ -81,10 +83,12 @@ namespace ScriptPad
         public CsScript(string name, string text)
         {
             this.Name = name;
+            this.Text = text;
             var compositionHost = new ContainerConfiguration().WithAssemblies(MefHostServices.DefaultAssemblies).CreateContainer();
             var hostService = MefHostServices.Create(compositionHost);
             this.Workspace = new ScriptingWorkspace(hostService);
             this.references = new List<Reference>();
+
             ID = Workspace.AddProjectWithDocument(name, text);
             IsChanged = false;
         }
@@ -99,9 +103,9 @@ namespace ScriptPad
         public static CsScript CreateFromFile(string path)
         {
             var info = new FileInfo(path);
+            var references = new List<Reference>();
 
             var text = File.ReadAllLines(path);
-            var references = new List<Reference>();
 
             var i = 0;
             for (; i < text.Length; i++)
@@ -119,6 +123,7 @@ namespace ScriptPad
             for (; i < text.Length; i++)
             {
                 code.Append(text[i]);
+                code.Append("\r\n");
             }
             var script = new CsScript(info.Name, code.ToString());
             foreach (var item in references)
@@ -151,7 +156,7 @@ namespace ScriptPad
             }
 
             this.references.Add(reference);
-            Workspace.AddReference(reference.Path, ID);
+            Task.Run(()=>Workspace.AddReference(reference.Path, ID));
         }
 
         /// <summary>
@@ -211,7 +216,7 @@ namespace ScriptPad
         {
             var document = Workspace.GetDocument(ID);
             var completionService = CompletionService.GetService(document);
-            return (await completionService.GetDescriptionAsync(document, completionItem)).TaggedParts;
+            return (await Task.Run(async()=> (await completionService.GetDescriptionAsync(document, completionItem)))).TaggedParts;
         }
 
         /// <summary>
@@ -281,7 +286,11 @@ namespace ScriptPad
         /// <param name="newText"></param>
         public void UpdateText(string newText)
         {
+            if (Text == newText)
+                return;
+
             IsChanged = true;
+            this.Text = newText;
             Workspace.UpdateText(ID, newText);
         }
 
@@ -318,10 +327,10 @@ namespace ScriptPad
             }
 
             UpdateText(document.WithText(documentText.WithChanges(changes)));
-            if (changes.Any())
-            {
-                await Format().ConfigureAwait(false);
-            }
+            //if (changes.Any())
+            //{
+            //    await Format().ConfigureAwait(false);
+            //}
         }
 
         /// <summary>
@@ -354,10 +363,10 @@ namespace ScriptPad
             }
 
             UpdateText(document.WithText(documentText.WithChanges(changes)));
-            if (changes.Any())
-            {
-                await Format().ConfigureAwait(false);
-            }
+            //if (changes.Any())
+            //{
+            //    await Format().ConfigureAwait(false);
+            //}
         }
     }
 }

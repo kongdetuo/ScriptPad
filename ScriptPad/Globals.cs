@@ -8,6 +8,6 @@ namespace ScriptPad
 {
     public static class Globals
     {
-        public static object GlobalObject;
+        public static object GlobalObject = new object();
     }
 }

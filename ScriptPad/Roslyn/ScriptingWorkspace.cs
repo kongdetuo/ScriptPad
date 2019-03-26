@@ -162,7 +162,7 @@ namespace ScriptPad.Roslyn
         public void RemoveReference(string path, DocumentId id)
         {
             var project = GetDocument(id).Project;
-            var data  = project.MetadataReferences.FirstOrDefault(p => p.Display == path);
+            var data = project.MetadataReferences.FirstOrDefault(p => p.Display == path);
             OnMetadataReferenceRemoved(project.Id, data);
         }
     }

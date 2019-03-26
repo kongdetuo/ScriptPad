@@ -105,6 +105,7 @@ namespace ScriptPad
         {
             var names = tc.Items.Cast<TabItem>()
                 .Select(tab => tab.Content as CodeEditor)
+                .Where(editor => editor != null)
                 .Select(editor => editor.Script.Name)
                 .ToList();
         }

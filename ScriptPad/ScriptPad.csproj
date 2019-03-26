@@ -265,8 +265,6 @@
     <Compile Include="Editor\CodeCompletionData.cs" />
     <Compile Include="Editor\TextMarker.cs" />
     <Compile Include="Editor\TextMarkerService.cs" />
-    <Compile Include="Host\RemoteScriptRun.cs" />
-    <Compile Include="Host\ScriptHost.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

@@ -40,8 +40,11 @@ namespace ScriptPad
         public CodeEditor(string path = null)
         {
             InitializeComponent();
-            //codeEditor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("C#");
+            this.Timer.Interval = TimeSpan.FromSeconds(1);
+            this.Timer.Tick += Timer_Tick;
+            this.Timer.Start();
 
+            // 需要提升效率, 暂时不用
             codeEditor.TextArea.TextEntering += textEditor_TextArea_TextEntering;
             codeEditor.TextArea.TextEntered += textEditor_TextArea_TextEntered;
             codeEditor.TextChanged += CodeEditor_TextChanged;
@@ -59,6 +62,8 @@ namespace ScriptPad
             SearchPanel.Install(codeEditor);
 
             codeEditor.TextArea.IndentationStrategy = new ICSharpCode.AvalonEdit.Indentation.CSharp.CSharpIndentationStrategy(codeEditor.Options);
+
+            // 这个也有效率问题
             //var csFoldingStrategy = new CSharpFoldingStrategy();
             //var foldingManager = FoldingManager.Install(codeEditor.TextArea);
 
@@ -70,40 +75,19 @@ namespace ScriptPad
             //};
             //foldingUpdateTimer.Start();
 
-            //markerService = new TextMarkerService(codeEditor.Document);
-            //markerService.AddToTextView(codeEditor.TextArea.TextView);
+            // 需要提升效率
             markerService = new TextMarkerService(codeEditor);
         }
 
-        /// <summary>
-        /// 关闭代码编辑窗口
-        /// </summary>
-        internal void Close()
+        private async void Timer_Tick(object sender, EventArgs e)
         {
-            if(Script.IsChanged)
-            {
-                var result = MessageBox.Show("文件已修改, 是否保存?", "保存", MessageBoxButton.YesNoCancel);
-                if (result == MessageBoxResult.OK)
-                {
-                    Script.Save();
-                }
-                if(result == MessageBoxResult.Cancel)
-                {
-                    throw new TaskCanceledException();
-                }
-            }
-        }
+            var document = codeEditor.Document;
 
-        private void CodeEditor_TextChanged(object sender, EventArgs e)
-        {
-            Script.UpdateText(codeEditor.Text);
 
-            //markerService.RemoveAll(m => true);
             markerService.Clear();
-            var diagnostics = Script.GetDiagnostics().Result;
+            var diagnostics = await Script.GetDiagnostics();
 
             var listItems = (diagnostics as IEnumerable<Diagnostic>).Where(x => x.Severity != DiagnosticSeverity.Hidden).Select(CreateErrorListItem).ToArray();
-            var document = codeEditor.Document;
             foreach (var item in listItems)
             {
                 var startOffset = document.GetOffset(new TextLocation(item.StartLine + 1, item.StartColumn + 1));
@@ -120,6 +104,32 @@ namespace ScriptPad
             }
         }
 
+        DispatcherTimer Timer = new DispatcherTimer();
+
+        /// <summary>
+        /// 关闭代码编辑窗口
+        /// </summary>
+        internal void Close()
+        {
+            if (Script.IsChanged)
+            {
+                var result = MessageBox.Show("文件已修改, 是否保存?", "保存", MessageBoxButton.YesNoCancel);
+                if (result == MessageBoxResult.OK)
+                {
+                    Script.Save();
+                }
+                if (result == MessageBoxResult.Cancel)
+                {
+                    throw new TaskCanceledException();
+                }
+            }
+        }
+
+        private void CodeEditor_TextChanged(object sender, EventArgs e)
+        {
+            Script.UpdateText(codeEditor.Text);
+        }
+
         private void textEditor_TextArea_TextEntering(object sender, TextCompositionEventArgs e)
         {
             if (e.Text.Length > 0 && completionWindow != null)
@@ -131,26 +141,15 @@ namespace ScriptPad
             }
         }
 
-        private void textEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
+        private async void textEditor_TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
-            ShowCompletionAsync(e.Text.FirstOrDefault());
-        }
 
-        private Tuple<int, string> GetWord(int position)
-        {
-            var wordStart = TextUtilities.GetNextCaretPosition(codeEditor.TextArea.Document, position, LogicalDirection.Backward, CaretPositioningMode.WordStart);
-            var text = codeEditor.TextArea.Document.GetText(wordStart, position - wordStart);
-            return new Tuple<int, string>(wordStart, text);
-        }
-
-        private async void ShowCompletionAsync(char? triggerChar)
-        {
-            //completionCancellation.Cancel();
-
-            completionCancellation = new CancellationTokenSource();
-            var cancellationToken = completionCancellation.Token;
             try
             {
+                char? triggerChar = e.Text.FirstOrDefault();
+
+                completionCancellation = new CancellationTokenSource();
+                var cancellationToken = completionCancellation.Token;
                 if (completionWindow == null && (triggerChar == null || triggerChar == '.' || IsAllowedLanguageLetter(triggerChar.Value)))
                 {
                     var position = codeEditor.CaretOffset;
@@ -174,7 +173,7 @@ namespace ScriptPad
                     {
                         var data = new CodeCompletionData(completionItem.DisplayText);
                         data.Image = GetImage(completionItem.Tags);
-                        data.Description = string.Join("", (await Script.GetDescriptionAsync(completionItem)));
+                        //data.Description = string.Join("", (await Script.GetDescriptionAsync(completionItem)));
                         completionWindow.CompletionList.CompletionData.Add(data);
                     }
 
@@ -190,6 +189,13 @@ namespace ScriptPad
             catch (OperationCanceledException)
             {
             }
+        }
+
+        private Tuple<int, string> GetWord(int position)
+        {
+            var wordStart = TextUtilities.GetNextCaretPosition(codeEditor.TextArea.Document, position, LogicalDirection.Backward, CaretPositioningMode.WordStart);
+            var text = codeEditor.TextArea.Document.GetText(wordStart, position - wordStart);
+            return new Tuple<int, string>(wordStart, text);
         }
 
         private static ErrorListItem CreateErrorListItem(Diagnostic diagnostic)
@@ -219,6 +225,15 @@ namespace ScriptPad
 
         private void OpenFile_btn_Click(object sender, RoutedEventArgs e)
         {
+            System.Windows.Forms.OpenFileDialog openFile = new System.Windows.Forms.OpenFileDialog()
+            {
+                Filter = "C# 脚本文件(*.csx)|*.csx"
+            };
+            if (openFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                this.Script = CsScript.CreateFromFile(openFile.FileName);
+                this.codeEditor.Text = Script.Text;
+            }
         }
 
         private ImageSource GetImage(ImmutableArray<string> tags)
@@ -290,17 +305,24 @@ namespace ScriptPad
 
         private async void runBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (flowDocument.Blocks.Count == 0)
+            try
             {
-                flowDocument.Blocks.Add(new Paragraph());
+                if (flowDocument.Blocks.Count == 0)
+                {
+                    flowDocument.Blocks.Add(new Paragraph());
+                }
+
+                Console.SetOut(new DelegateTextWriter((flowDocument.Blocks.First() as Paragraph).Inlines.Add));
+                var script = CSharpScript.Create(Script.ToCode(), globalsType: Globals.GlobalObject.GetType());
+                //script = script.ContinueWith("main(uiApp)");
+                await script.RunAsync(Globals.GlobalObject);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                throw;
             }
 
-            Console.SetOut(new DelegateTextWriter((flowDocument.Blocks.First() as Paragraph).Inlines.Add));
-            var script = CSharpScript.Create(Script.ToCode());
-            //await script.RunAsync();
-            //script = script.ContinueWith("main(uiApp)");
-
-            await script.RunAsync(Globals.GlobalObject);
         }
 
         private void SaveFile_btn_Click(object sender, RoutedEventArgs e)

@@ -38,6 +38,9 @@
                 </Style>
             </ToolBar.Resources>
 
+            <Button ToolTip="从文件加载" Name="OpenFile_btn" Click="OpenFile_btn_Click">
+                <Image Source="/ScriptPad;component/Resource/Images/OpenFile_16x.png" Height="16"></Image>
+            </Button>
             <Button ToolTip="Save" Name="SaveFile_btn" Click="SaveFile_btn_Click">
                 <Image Source="/ScriptPad;component/Resource/Images/Save_16x.png" Height="16"></Image>
             </Button>
