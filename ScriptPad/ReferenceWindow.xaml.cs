@@ -80,7 +80,7 @@ namespace ScriptPad
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            this.Close();
         }
 
         private void AddBtn_Click(object sender, RoutedEventArgs e)

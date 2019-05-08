@@ -19,6 +19,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Microsoft.CodeAnalysis.Scripting;
 using ScriptPad.Editor;
 using ScriptPad.Roslyn;
 
@@ -52,13 +53,14 @@ namespace ScriptPad
             if (string.IsNullOrEmpty(path))
             {
                 script++;
-                Script = new CsScript("script" + script, "");
+                Script = new CsScript("script" + script, ScriptGlobals.templateScript);
             }
             else
             {
                 Script = CsScript.CreateFromFile(path);
             }
 
+            this.codeEditor.Text = Script.Text;
             SearchPanel.Install(codeEditor);
 
             codeEditor.TextArea.IndentationStrategy = new ICSharpCode.AvalonEdit.Indentation.CSharp.CSharpIndentationStrategy(codeEditor.Options);
@@ -311,18 +313,21 @@ namespace ScriptPad
                 {
                     flowDocument.Blocks.Add(new Paragraph());
                 }
-
                 Console.SetOut(new DelegateTextWriter((flowDocument.Blocks.First() as Paragraph).Inlines.Add));
-                var script = CSharpScript.Create(Script.ToCode(), globalsType: Globals.GlobalObject.GetType());
-                //script = script.ContinueWith("main(uiApp)");
-                await script.RunAsync(Globals.GlobalObject);
+
+                var options = ScriptOptions.Default;
+                options = options.WithReferences(Script.GetReferences());
+
+                var script = CSharpScript.Create(Script.ToCode(), options, globalsType: ScriptGlobals.GlobalObject.GetType());
+                if (!string.IsNullOrWhiteSpace(ScriptGlobals.StartScript))
+                    script = script.ContinueWith(ScriptGlobals.StartScript);
+
+                await script.RunAsync(ScriptGlobals.GlobalObject);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
-                throw;
             }
-
         }
 
         private void SaveFile_btn_Click(object sender, RoutedEventArgs e)

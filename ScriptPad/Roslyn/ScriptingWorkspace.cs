@@ -22,19 +22,7 @@ namespace ScriptPad.Roslyn
 {
     internal class ScriptingWorkspace : Workspace
     {
-        public static readonly Assembly[] defaultReferences =
-        {
-            typeof(object).Assembly,                                // mscorelib
-            typeof(Uri).Assembly,                                   // System
-            typeof(Enumerable).Assembly,                            // System.Core
-            typeof(XmlReader).Assembly,                             // System.Xml
-            typeof(XDocument).Assembly,                             // System.Xml.Linq
-            typeof(Formatter).Assembly,                             // System.Runtime.Serialization
-            typeof(ImmutableArray).Assembly,                        // System.Collections.Immutable
-            typeof(Span<>).Assembly,                                // System.Memory
-            typeof(ArrayPool<>).Assembly,                           // System.Buffers
-            Type.GetType("System.ValueTuple", throwOnError: false)?.Assembly ?? typeof(ValueTuple).Assembly     // System.ValueTuple
-        };
+
 
         private readonly ConcurrentDictionary<string, DocumentationProvider> documentationProviders;
 
@@ -68,7 +56,7 @@ namespace ScriptPad.Roslyn
             var projectId = ProjectId.CreateNewId();
 
             // ValueTuple needs a separate assembly in .NET 4.6.x. But it is not needed anymore in .NET 4.7+ as it is included in mscorelib.
-            var references = defaultReferences.Distinct().Select(CreateReference).ToList();
+            var references = ScriptGlobals.InitAssemblies.Distinct().Select(CreateReference).ToList();
             references.Add(CreateReference(Assembly.Load("System.Runtime, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")));
             references.Add(CreateReference(Assembly.Load("netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51")));
             references.Add(CreateReference(typeof(RuntimeBinderException).Assembly));
@@ -154,7 +142,7 @@ namespace ScriptPad.Roslyn
 
         public void AddReference(string path, DocumentId id)
         {
-            var data = MetadataReference.CreateFromFile(path);
+            PortableExecutableReference data = MetadataReference.CreateFromFile(path);
             var pid = GetDocument(id).Project.Id;
             OnMetadataReferenceAdded(pid, data);
         }
@@ -162,8 +150,16 @@ namespace ScriptPad.Roslyn
         public void RemoveReference(string path, DocumentId id)
         {
             var project = GetDocument(id).Project;
-            var data = project.MetadataReferences.FirstOrDefault(p => p.Display == path);
+            var data = project.MetadataReferences.FirstOrDefault(p => (p as PortableExecutableReference).FilePath == path);
+
             OnMetadataReferenceRemoved(project.Id, data);
         }
+
+        public IEnumerable<MetadataReference> GetReferences(DocumentId id)
+        {
+            var project = GetDocument(id).Project;
+            return project.MetadataReferences;
+        }
+
     }
 }

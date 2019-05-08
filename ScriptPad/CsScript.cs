@@ -84,6 +84,8 @@ namespace ScriptPad
         {
             this.Name = name;
             this.Text = text;
+            if (text == null)
+                this.Text = "";
             var compositionHost = new ContainerConfiguration().WithAssemblies(MefHostServices.DefaultAssemblies).CreateContainer();
             var hostService = MefHostServices.Create(compositionHost);
             this.Workspace = new ScriptingWorkspace(hostService);
@@ -251,6 +253,7 @@ namespace ScriptPad
             {
                 code.Append(item.ToCode());
             }
+
             code.Append(GetScriptText().Result);
             return code.ToString();
         }
@@ -367,6 +370,11 @@ namespace ScriptPad
             //{
             //    await Format().ConfigureAwait(false);
             //}
+        }
+
+        internal IEnumerable<MetadataReference> GetReferences()
+        {
+            return Workspace.GetReferences(this.ID);
         }
     }
 }
