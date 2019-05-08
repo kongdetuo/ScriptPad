@@ -26,7 +26,6 @@ namespace ScriptPad
         {
             InitializeComponent();
             this.script = script;
-            //SearchDll();
             ShowReferences();
         }
 
@@ -46,9 +45,9 @@ namespace ScriptPad
                     {
                         script.AddReference(item);
                     }
-                    catch
+                    catch(Exception ex)
                     {
-
+                        System.Windows.Forms.MessageBox.Show(ex.Message);
                     }
                 }
                 ShowReferences();
@@ -60,7 +59,8 @@ namespace ScriptPad
             ReferenceList.Items.Clear();
             foreach (var item in script.References)
             {
-                ReferenceList.Items.Add(item.Name);
+                var path = item.FilePath;
+                ReferenceList.Items.Add(path);
             }
         }
 
@@ -70,7 +70,7 @@ namespace ScriptPad
             foreach (var item in items)
             {
                 ReferenceList.Items.Remove(item);
-                script.RemoveReference(script.References.First(p => p.Name == item));
+                script.RemoveReference(item);
             }
             if(items.Count >0)
             {
@@ -86,6 +86,7 @@ namespace ScriptPad
         private void AddBtn_Click(object sender, RoutedEventArgs e)
         {
             new AddReferenceWindow(this.script).ShowDialog();
+            ShowReferences();
         }
     }
 }

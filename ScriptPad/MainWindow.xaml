@@ -17,14 +17,14 @@
             <ColumnDefinition Width="auto"></ColumnDefinition>
 
         </Grid.ColumnDefinitions>
-        <Menu Margin="3" Grid.ColumnSpan="2" Background="White">
+        <!--<Menu Margin="3" Grid.ColumnSpan="2" Background="White">
             <MenuItem Header="文件">
                 <MenuItem Header="新建"></MenuItem>
                 <MenuItem Header="打开"></MenuItem>
                 <MenuItem Header="保存"></MenuItem>
                 <MenuItem Header="另存为..."></MenuItem>
             </MenuItem>
-        </Menu>
+        </Menu>-->
 
 
 

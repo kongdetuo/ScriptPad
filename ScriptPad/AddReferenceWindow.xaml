@@ -5,10 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ScriptPad"
         mc:Ignorable="d"
-        Title="程序集引用" Height="450" Width="600">
+        Title="程序集引用" Width="600" Height="400">
     <Grid>
-        <ListBox
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <ListBox Grid.Row="0"
             Name="ReferenceList">
         </ListBox>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Row="1">
+            <Button Content="OK" Name="okBtn" Width="80" Height="24" Margin="10" Click="OkBtn_Click" />
+            <Button Content="Cancel" Name="cancelBtn" Width="80" Height="24" Margin="10" Click="CancelBtn_Click"/>
+        </StackPanel>
     </Grid>
 </Window>

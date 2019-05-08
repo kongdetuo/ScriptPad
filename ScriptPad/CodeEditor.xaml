@@ -27,7 +27,7 @@
             <ColumnDefinition Width="auto"></ColumnDefinition>
         </Grid.ColumnDefinitions>
 
-        <ToolBar DockPanel.Dock="Top" Grid.Row="0">
+        <ToolBar Grid.Row="0" Height="36" ToolBarTray.IsLocked="True" Background="Gray">
             <ToolBar.Resources>
                 <Style TargetType="{x:Type Image}">
                     <Style.Triggers>
@@ -38,35 +38,35 @@
                 </Style>
             </ToolBar.Resources>
 
-            <Button ToolTip="从文件加载" Name="OpenFile_btn" Click="OpenFile_btn_Click">
-                <Image Source="/ScriptPad;component/Resource/Images/OpenFile_16x.png" Height="16"></Image>
+            <Button ToolTip="从文件加载" Name="OpenFile_btn" Click="OpenFile_btn_Click" Margin="3">
+                <Image Source="/ScriptPad;component/Resource/Images/OpenFile_16x.png" Height="16"/>
             </Button>
             <Button ToolTip="Save" Name="SaveFile_btn" Click="SaveFile_btn_Click">
-                <Image Source="/ScriptPad;component/Resource/Images/Save_16x.png" Height="16"></Image>
+                <Image Source="/ScriptPad;component/Resource/Images/Save_16x.png" Height="16"/>
             </Button>
             <Button ToolTip="Undo" Command="Undo">
-                <Image Source="/ScriptPad;component/Resource/Images/Undo_16x.png" Height="16"></Image>
+                <Image Source="/ScriptPad;component/Resource/Images/Undo_16x.png" Height="16"/>
             </Button>
             <Button ToolTip="Redo" Command="Redo">
-                <Image Source="/ScriptPad;component/Resource/Images/Redo_16x.png" Height="16"></Image>
+                <Image Source="/ScriptPad;component/Resource/Images/Redo_16x.png" Height="16"/>
             </Button>
             <Separator />
             <Button Name="runBtn" Click="runBtn_Click" ToolTip="Run">
-                <Image Source="/ScriptPad;component/Resource/Images/Run_16x.png" Height="16" />
+                <Image Source="/ScriptPad;component/Resource/Images/Run_16x.png" Height="16"/>
             </Button>
             <Separator />
             <Button Name="formatBtn" Click="formatBtn_Click">
-                <Image Source="/ScriptPad;component/Resource/Images/FormatDocument_16x.png" Height="16" />
+                <Image Source="/ScriptPad;component/Resource/Images/FormatDocument_16x.png" Height="16"/>
             </Button>
             <Button Name="CommentBtn" Click="CommentBtn_Click">
-                <Image Source="/ScriptPad;component/Resource/Images/CommentCode_16x.png" Height="16" />
+                <Image Source="/ScriptPad;component/Resource/Images/CommentCode_16x.png" Height="16"/>
             </Button>
             <Button Name="UnCommentBtn" Click="UnCommentBtn_Click">
-                <Image Source="/ScriptPad;component/Resource/Images/UnCommentCode_16x.png" Height="16" />
+                <Image Source="/ScriptPad;component/Resource/Images/UnCommentCode_16x.png" Height="16"/>
             </Button>
             <Separator />
             <Button Name="AddReference" Click="Reference_Click" ToolTip="引用">
-                <Image Source="/ScriptPad;component/Resource/Images/Reference_16x.png" Height="16" />
+                <Image Source="/ScriptPad;component/Resource/Images/Reference_16x.png" Height="16"/>
             </Button>
         </ToolBar>
 

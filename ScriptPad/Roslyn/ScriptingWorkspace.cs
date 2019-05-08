@@ -22,25 +22,9 @@ namespace ScriptPad.Roslyn
 {
     internal class ScriptingWorkspace : Workspace
     {
-
-
-        private readonly ConcurrentDictionary<string, DocumentationProvider> documentationProviders;
-
         public ScriptingWorkspace(HostServices hostServices) : base(hostServices, WorkspaceKind.Interactive)
         {
-            documentationProviders = new ConcurrentDictionary<string, DocumentationProvider>();
-        }
 
-        public new void SetCurrentSolution(Solution solution)
-        {
-            var oldSolution = CurrentSolution;
-            var newSolution = base.SetCurrentSolution(solution);
-            RaiseWorkspaceChangedEventAsync(WorkspaceChangeKind.SolutionChanged, oldSolution, newSolution);
-        }
-
-        public override bool CanApplyChange(ApplyChangesKind feature)
-        {
-            return feature == ApplyChangesKind.ChangeDocument || base.CanApplyChange(feature);
         }
 
         public Document GetDocument(DocumentId id)
@@ -55,11 +39,7 @@ namespace ScriptPad.Roslyn
 
             var projectId = ProjectId.CreateNewId();
 
-            // ValueTuple needs a separate assembly in .NET 4.6.x. But it is not needed anymore in .NET 4.7+ as it is included in mscorelib.
             var references = ScriptGlobals.InitAssemblies.Distinct().Select(CreateReference).ToList();
-            references.Add(CreateReference(Assembly.Load("System.Runtime, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")));
-            references.Add(CreateReference(Assembly.Load("netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51")));
-            references.Add(CreateReference(typeof(RuntimeBinderException).Assembly));
 
             var projectInfo = ProjectInfo.Create(
                 projectId,
@@ -109,35 +89,9 @@ namespace ScriptPad.Roslyn
             }, cancellationToken);
         }
 
-        public Task<BuildResult> BuildAsync(DocumentId documentId, CancellationToken cancellationToken)
-        {
-            return Task.Run(async () =>
-            {
-                var project = CurrentSolution.GetProject(documentId.ProjectId);
-                var compilation = await project.GetCompilationAsync(cancellationToken);
-
-                using (var peStream = new MemoryStream())
-                using (var pdbStream = new MemoryStream())
-                {
-                    var result = compilation.Emit(peStream, pdbStream);
-                    var inMemoryAssembly = result.Success ? peStream.ToArray() : null;
-                    var inMemorySymbolStore = result.Success ? pdbStream.ToArray() : null;
-                    return new BuildResult(result.Diagnostics, inMemoryAssembly, inMemorySymbolStore);
-                }
-            }, cancellationToken);
-        }
-
-        protected override void ApplyDocumentTextChanged(DocumentId documentId, SourceText text)
-        {
-            OnDocumentTextChanged(documentId, text, PreservationMode.PreserveValue);
-        }
-
         private MetadataReference CreateReference(Assembly assembly)
         {
-            string assemblyPath = assembly.Location;
-            string documentationPath = Path.ChangeExtension(assemblyPath, "xml");
-            var provider = documentationProviders.GetOrAdd(documentationPath, path => new FileBasedXmlDocumentationProvider(path));
-            return MetadataReference.CreateFromFile(assemblyPath, new MetadataReferenceProperties(), provider);
+            return MetadataReference.CreateFromFile(assembly.Location);
         }
 
         public void AddReference(string path, DocumentId id)

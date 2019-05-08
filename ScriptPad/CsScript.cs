@@ -17,48 +17,6 @@ using ScriptPad.Roslyn;
 
 namespace ScriptPad
 {
-    public class Reference
-    {
-
-        public string Name { get; private set; }
-        public string Path { get; private set; }
-
-        public static Reference FromFile(string path)
-        {
-            if (!path.Contains('\\'))
-            {
-                return new Reference() { Name = path, Path = path };
-            }
-            else
-            {
-                var name = path.Substring(path.LastIndexOf('\\') + 1);
-                return new Reference() { Name = name, Path = path };
-            }
-        }
-
-        public static Reference FromCode(string text)
-        {
-            if (text.Contains('\\'))
-            {
-                // #r "
-                var path = text.Substring(4, text.Length - 5);
-                var name = path.Substring(path.LastIndexOf('\\') + 1);
-                return new Reference() { Name = name, Path = path };
-            }
-            else
-            {
-                // #r "
-                var path = text.Substring(4, text.Length - 5);
-                return new Reference() { Name = path, Path = path };
-            }
-        }
-
-        internal string ToCode()
-        {
-            return "#r \"" + Path + "\"\r\n";
-        }
-    }
-
     public class CsScript
     {
         /// <summary>
@@ -71,9 +29,7 @@ namespace ScriptPad
 
         public string Text { get; private set; }
 
-        private List<Reference> references;
-
-        public IReadOnlyCollection<Reference> References => references;
+        public IReadOnlyCollection<PortableExecutableReference> References => Workspace.GetReferences(this.ID).OfType<PortableExecutableReference>().ToList();
 
         /// <summary>
         /// 创建具有指定名字和内容的脚本对象
@@ -89,9 +45,8 @@ namespace ScriptPad
             var compositionHost = new ContainerConfiguration().WithAssemblies(MefHostServices.DefaultAssemblies).CreateContainer();
             var hostService = MefHostServices.Create(compositionHost);
             this.Workspace = new ScriptingWorkspace(hostService);
-            this.references = new List<Reference>();
 
-            ID = Workspace.AddProjectWithDocument(name, text);
+            ID = Workspace.AddProjectWithDocument(name, this.Text);
             IsChanged = false;
         }
 
@@ -105,16 +60,15 @@ namespace ScriptPad
         public static CsScript CreateFromFile(string path)
         {
             var info = new FileInfo(path);
-            var references = new List<Reference>();
-
             var text = File.ReadAllLines(path);
 
             var i = 0;
+            List<string> references = new List<string>();
             for (; i < text.Length; i++)
             {
                 if (text[i].StartsWith("#r "))
                 {
-                    references.Add(Reference.FromCode(text[i]));
+                    references.Add(text[i].Trim().Substring(4, text.Length - 5)); // #r "
                 }
                 else
                 {
@@ -141,41 +95,10 @@ namespace ScriptPad
         /// <param name="path">文件路径</param>
         public void AddReference(string path)
         {
-            var reference = Reference.FromFile(path);
-            AddReference(reference);
+            Workspace.AddReference(path, this.ID);
         }
 
-        /// <summary>
-        /// 添加引用
-        /// </summary>
-        /// <param name="reference"></param>
-        public void AddReference(Reference reference)
-        {
-            var value = this.references.Find(r => r.Name == reference.Name);
-            if (value != null)
-            {
-                return;
-            }
 
-            this.references.Add(reference);
-            Task.Run(()=>Workspace.AddReference(reference.Path, ID));
-        }
-
-        /// <summary>
-        /// 删除引用
-        /// </summary>
-        /// <param name="reference"></param>
-        public void RemoveReference(Reference reference)
-        {
-            var value = this.references.Find(r => r.Name == reference.Name);
-            if (value == null)
-            {
-                return;
-            }
-
-            this.references.Remove(value);
-            Workspace.RemoveReference(reference.Path, ID);
-        }
 
         /// <summary>
         /// 删除引用
@@ -183,8 +106,7 @@ namespace ScriptPad
         /// <param name="path"></param>
         public void RemoveReference(string path)
         {
-            var reference = Reference.FromFile(path);
-            RemoveReference(reference);
+           Workspace.RemoveReference(path, this.ID);
         }
 
         /// <summary>
@@ -218,7 +140,7 @@ namespace ScriptPad
         {
             var document = Workspace.GetDocument(ID);
             var completionService = CompletionService.GetService(document);
-            return (await Task.Run(async()=> (await completionService.GetDescriptionAsync(document, completionItem)))).TaggedParts;
+            return (await Task.Run(async () => (await completionService.GetDescriptionAsync(document, completionItem)))).TaggedParts;
         }
 
         /// <summary>
@@ -249,9 +171,10 @@ namespace ScriptPad
         public string ToCode()
         {
             var code = new StringBuilder();
-            foreach (var item in references)
+            foreach (var item in References)
             {
-                code.Append(item.ToCode());
+                var refstr = $"#r \"{item.FilePath}\"\r\n";
+                code.Append(refstr);
             }
 
             code.Append(GetScriptText().Result);

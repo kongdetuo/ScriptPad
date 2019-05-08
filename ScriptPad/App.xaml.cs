@@ -13,5 +13,12 @@ namespace ScriptPad
     /// </summary>
     public partial class App : Application
     {
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            ScriptGlobals.InitAssemblies = new List<System.Reflection.Assembly>();
+            ScriptGlobals.InitAssemblies.Add(typeof(object).Assembly);
+
+
+        }
     }
 }

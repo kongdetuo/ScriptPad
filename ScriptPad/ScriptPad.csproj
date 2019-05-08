@@ -250,7 +250,6 @@
     <Compile Include="AddReferenceWindow.xaml.cs">
       <DependentUpon>AddReferenceWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Class1.cs" />
     <Compile Include="CodeEditor.xaml.cs">
       <DependentUpon>CodeEditor.xaml</DependentUpon>
     </Compile>
@@ -259,10 +258,8 @@
     <Compile Include="ReferenceWindow.xaml.cs">
       <DependentUpon>ReferenceWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Roslyn\BuildResult.cs" />
     <Compile Include="Roslyn\ErrorListItem.cs" />
     <Compile Include="Roslyn\ErrorSeverity.cs" />
-    <Compile Include="Roslyn\FileBasedXmlDocumentationProvider.cs" />
     <Compile Include="Roslyn\ScriptingWorkspace.cs" />
     <Compile Include="ScriptGlobals.cs" />
     <Page Include="AddReferenceWindow.xaml">

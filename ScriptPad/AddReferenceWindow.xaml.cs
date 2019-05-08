@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -12,55 +13,58 @@ namespace ScriptPad
     public partial class AddReferenceWindow : Window
     {
         private CsScript script;
+        private List<string> list;
 
         public AddReferenceWindow(CsScript script)
         {
             this.script = script;
             InitializeComponent();
-            SearchDll();
-        }
 
-        private void BrowseBtn_Click(object sender, RoutedEventArgs e)
-        {
-            
-        }
+            this.list = script.GetReferences().OfType<Microsoft.CodeAnalysis.PortableExecutableReference>().Select(p => p.FilePath).ToList();
 
-        void SearchDll()
-        {
-            var path = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-            path += @"\Microsoft.NET\Framework\";
+            var path = typeof(object).Assembly.Location;
+            path = Path.GetDirectoryName(path);
 
             var dir = new DirectoryInfo(path);
-            var subdir = dir.GetDirectories().Where(d => !d.Name.Contains("X")).LastOrDefault();
-            if (subdir != null)
-            {
-                var dic = subdir.GetFiles().Where(p => p.Extension == ".dll").ToDictionary(p => p.Name);
 
-                foreach (var item in dic.Keys.OrderBy(p => p.Substring(0, p.Length - 4)))
+            var dic = dir.GetFiles().Where(p => p.Extension == ".dll").ToDictionary(p => p.Name);
+
+            foreach (var item in dic.Keys.OrderBy(p => p.Substring(0, p.Length - 4)))
+            {
+                var cb = new CheckBox();
+                cb.Content = item;
+                cb.IsThreeState = false;
+                cb.ToolTip = dic[item].FullName;
+
+                if (list.Contains(dic[item].FullName))
+                    cb.IsChecked = true;
+
+                ReferenceList.Items.Add(cb);
+            }
+        }
+
+        private void CancelBtn_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        private void OkBtn_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var item in ReferenceList.Items)
+            {
+                var cb = item as CheckBox;
+                var path = cb.ToolTip as string;
+                
+                if(list.Contains(path) && !cb.IsChecked.Value)
                 {
-                    var cb = new CheckBox();
-                    cb.Content = item;
-                    cb.IsThreeState = false;
-                    cb.IsChecked = script.References.FirstOrDefault(r => r.Path == dic[item].FullName) != null;
-                    cb.ToolTip = dic[item].FullName;
-                    cb.Checked += (sender, e) =>
-                    {
-                        var cb1 = sender as CheckBox;
-                        if (cb1.IsChecked.Value)
-                        {
-                            script.AddReference(dic[item].FullName);
-                        }
-                        else
-                        {
-                            script.RemoveReference(dic[item].FullName);
-                        }
-                    };
-                    ReferenceList.Items.Add(cb);
+                    this.script.RemoveReference(path);
+                }
+                if(!list.Contains(path) && cb.IsChecked.Value)
+                {
+                    this.script.AddReference(path);
                 }
             }
-            else
-            {
-            }
+            this.Close();
         }
     }
 }
