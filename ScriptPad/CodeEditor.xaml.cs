@@ -63,7 +63,8 @@ namespace ScriptPad
             this.codeEditor.Text = Script.Text;
             SearchPanel.Install(codeEditor);
 
-            codeEditor.TextArea.IndentationStrategy = new ICSharpCode.AvalonEdit.Indentation.CSharp.CSharpIndentationStrategy(codeEditor.Options);
+            //codeEditor.TextArea.IndentationStrategy = new ICSharpCode.AvalonEdit.Indentation.CSharp.CSharpIndentationStrategy(codeEditor.Options);
+            codeEditor.TextArea.IndentationStrategy = new CSIndentationStrategy();
 
             // 这个也有效率问题
             //var csFoldingStrategy = new CSharpFoldingStrategy();
@@ -316,11 +317,13 @@ namespace ScriptPad
                 Console.SetOut(new DelegateTextWriter((flowDocument.Blocks.First() as Paragraph).Inlines.Add));
 
                 var options = ScriptOptions.Default;
-                options = options.WithReferences(Script.GetReferences());
+                options = options.AddReferences(Script.GetReferences());
+                options = options.AddReferences(ScriptGlobals.InitAssemblies);
 
-                var script = CSharpScript.Create(Script.ToCode(), options, globalsType: ScriptGlobals.GlobalObject.GetType());
+                var script = CSharpScript.Create(await Script.GetScriptText(), options, globalsType: ScriptGlobals.GlobalObject.GetType());
+
                 if (!string.IsNullOrWhiteSpace(ScriptGlobals.StartScript))
-                    script = script.ContinueWith(ScriptGlobals.StartScript);
+                    script = script.ContinueWith(ScriptGlobals.StartScript, options);
 
                 await script.RunAsync(ScriptGlobals.GlobalObject);
             }
@@ -358,4 +361,42 @@ namespace ScriptPad
             new ReferenceWindow(this.Script).ShowDialog();
         }
     }
+
+    class CSIndentationStrategy : ICSharpCode.AvalonEdit.Indentation.IIndentationStrategy
+    {
+
+        string IndentationString = "\t";
+
+        public void IndentLine(ICSharpCode.AvalonEdit.Document.TextDocument document, DocumentLine line)
+        {
+            if (document == null)
+                throw new ArgumentNullException("document");
+            if (line == null)
+                throw new ArgumentNullException("line");
+            DocumentLine previousLine = line.PreviousLine;
+            if (previousLine != null)
+            {
+                ISegment indentationSegment = TextUtilities.GetWhitespaceAfter(document, previousLine.Offset);
+                string indentation = document.GetText(indentationSegment);
+
+                var c = document.GetCharAt(previousLine.EndOffset - 1);
+                if(c == '{')
+                {
+                    indentation += IndentationString;
+                }
+
+                // copy indentation to line
+                indentationSegment = TextUtilities.GetWhitespaceAfter(document, line.Offset);
+                document.Replace(indentationSegment.Offset, indentationSegment.Length, indentation,
+                                 OffsetChangeMappingType.RemoveAndInsert);
+                // OffsetChangeMappingType.RemoveAndInsert guarantees the caret moves behind the new indentation.
+            }
+        }
+
+        public void IndentLines(ICSharpCode.AvalonEdit.Document.TextDocument document, int beginLine, int endLine)
+        {
+
+        }
+    }
+
 }

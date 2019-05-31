@@ -69,6 +69,11 @@ namespace ScriptPad.Roslyn
             return CurrentSolution.GetProject(id.ProjectId);
         }
 
+        public override bool CanApplyChange(ApplyChangesKind feature)
+        {
+            return feature == ApplyChangesKind.ChangeDocument || base.CanApplyChange(feature);
+        }
+
         public void RemoveProject(DocumentId id)
         {
             OnProjectRemoved(id.ProjectId);
@@ -96,6 +101,10 @@ namespace ScriptPad.Roslyn
 
         public void AddReference(string path, DocumentId id)
         {
+            var references = GetReferences(id).OfType<PortableExecutableReference>();
+            if(references.Any(p=>p.FilePath == path))
+                return;
+
             PortableExecutableReference data = MetadataReference.CreateFromFile(path);
             var pid = GetDocument(id).Project.Id;
             OnMetadataReferenceAdded(pid, data);

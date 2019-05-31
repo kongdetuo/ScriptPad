@@ -68,7 +68,7 @@ namespace ScriptPad
             {
                 if (text[i].StartsWith("#r "))
                 {
-                    references.Add(text[i].Trim().Substring(4, text.Length - 5)); // #r "
+                    references.Add(text[i].Trim().Substring(4, text[i].Length - 5)); // #r "
                 }
                 else
                 {
