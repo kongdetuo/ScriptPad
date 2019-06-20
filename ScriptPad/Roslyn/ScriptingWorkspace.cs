@@ -6,23 +6,18 @@ using Microsoft.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using Microsoft.CodeAnalysis.Host;
-using System.Xml;
-using System.Xml.Linq;
 using System.Reflection;
-using System.Collections.Immutable;
-using System.Buffers;
-using System.Collections.Concurrent;
-using Microsoft.CSharp.RuntimeBinder;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using System.Text;
-using System.Runtime.Serialization;
+using Microsoft.CodeAnalysis.Host.Mef;
+using System.Composition.Hosting;
 
 namespace ScriptPad.Roslyn
 {
     internal class ScriptingWorkspace : Workspace
     {
-        public ScriptingWorkspace(HostServices hostServices) : base(hostServices, WorkspaceKind.Interactive)
+        private ScriptingWorkspace(HostServices hostServices) : base(hostServices, WorkspaceKind.Interactive)
         {
 
         }
@@ -67,11 +62,6 @@ namespace ScriptPad.Roslyn
         public Project GetProject(DocumentId id)
         {
             return CurrentSolution.GetProject(id.ProjectId);
-        }
-
-        public override bool CanApplyChange(ApplyChangesKind feature)
-        {
-            return feature == ApplyChangesKind.ChangeDocument || base.CanApplyChange(feature);
         }
 
         public void RemoveProject(DocumentId id)
@@ -124,5 +114,16 @@ namespace ScriptPad.Roslyn
             return project.MetadataReferences;
         }
 
+        private static Lazy<ScriptingWorkspace> instance = new Lazy<ScriptingWorkspace>(() =>
+        {
+            var compositionHost = new ContainerConfiguration().WithAssemblies(MefHostServices.DefaultAssemblies).CreateContainer();
+            var hostService = MefHostServices.Create(compositionHost);
+            return new ScriptingWorkspace(hostService);
+        }, true);
+        public static ScriptingWorkspace GetInstance()
+        {
+            return instance.Value;
+        }
     }
+
 }

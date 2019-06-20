@@ -14,7 +14,7 @@ namespace ScriptPad.Editor
         }
 
         public string Message { get; }
-
+    
         public Color MarkerColor { get; }
     }
 }

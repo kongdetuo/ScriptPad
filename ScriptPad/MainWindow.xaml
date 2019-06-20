@@ -8,39 +8,9 @@
         Title="MainWindow" Height="450" Width="800" Closing="Window_Closing">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <!--<ColumnDefinition Width="auto" MaxWidth="300"></ColumnDefinition>-->
-            <ColumnDefinition Width="*"></ColumnDefinition>
-            <ColumnDefinition Width="auto"></ColumnDefinition>
-
-        </Grid.ColumnDefinitions>
-        <!--<Menu Margin="3" Grid.ColumnSpan="2" Background="White">
-            <MenuItem Header="文件">
-                <MenuItem Header="新建"></MenuItem>
-                <MenuItem Header="打开"></MenuItem>
-                <MenuItem Header="保存"></MenuItem>
-                <MenuItem Header="另存为..."></MenuItem>
-            </MenuItem>
-        </Menu>-->
-
-
-
-        <!--<TreeView BorderThickness="0"
-                  Margin="5,3,0,3">
-            <TreeViewItem Name="treeRoot">
-                <TreeViewItem.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="刷新" />
-                    </ContextMenu>
-                </TreeViewItem.ContextMenu>
-            </TreeViewItem>
-        </TreeView>
-        <GridSplitter Grid.Column="1" Width="4" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"></GridSplitter>-->
-
-        <TabControl Grid.Column="0" Grid.Row="1" Name="tc" SelectionChanged="TabControl_SelectionChanged" Grid.ColumnSpan="2">
+        <TabControl Name="tc" SelectionChanged="TabControl_SelectionChanged" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
             <TabItem Header="+">
             </TabItem>
         </TabControl>

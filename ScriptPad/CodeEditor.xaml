@@ -19,8 +19,7 @@
             <RowDefinition Height="auto"></RowDefinition>
             <RowDefinition Height="*"></RowDefinition>
             <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
-            <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition Height="20" MaxHeight="500"></RowDefinition>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"></ColumnDefinition>
@@ -87,9 +86,10 @@
                 </ContextMenu>
             </editor:TextEditor.ContextMenu>
         </editor:TextEditor>
-        <GridSplitter Grid.Row="2" Height="6" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"></GridSplitter>
-        <RichTextBox Name="outTextbox" Grid.Row="3" FontFamily="Consolas" FontSize="14">
-            <FlowDocument x:Name="flowDocument" />
+        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch"  ></GridSplitter>
+        <RichTextBox Name="outTextbox" Grid.Row="3" FontFamily="Consolas" FontSize="14"
+                     VerticalScrollBarVisibility="Visible">
+            <FlowDocument Name="flowDocument"/>
         </RichTextBox>
     </Grid>
 </UserControl>

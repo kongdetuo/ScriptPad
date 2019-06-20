@@ -1,12 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Completion;
-using Microsoft.CodeAnalysis.Host.Mef;
-using Microsoft.CodeAnalysis.Options;
-using Microsoft.CodeAnalysis.Text;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Composition.Hosting;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -23,7 +17,7 @@ namespace ScriptPad
         /// 是否更改过
         /// </summary>
         public bool IsChanged { get; private set; }
-        private readonly DocumentId ID;
+        public readonly DocumentId ID;
         public string Name { get; set; }
         public string Path { get; set; }
 
@@ -42,15 +36,12 @@ namespace ScriptPad
             this.Text = text;
             if (text == null)
                 this.Text = "";
-            var compositionHost = new ContainerConfiguration().WithAssemblies(MefHostServices.DefaultAssemblies).CreateContainer();
-            var hostService = MefHostServices.Create(compositionHost);
-            this.Workspace = new ScriptingWorkspace(hostService);
 
             ID = Workspace.AddProjectWithDocument(name, this.Text);
             IsChanged = false;
         }
 
-        private ScriptingWorkspace Workspace { get; set; }
+        private ScriptingWorkspace Workspace => ScriptingWorkspace.GetInstance();
 
         /// <summary>
         /// 从文件创建 Script 对象
@@ -86,6 +77,8 @@ namespace ScriptPad
             {
                 script.AddReference(item);
             }
+            script.Path = path;
+
             return script;
         }
 
@@ -113,34 +106,11 @@ namespace ScriptPad
         /// 整理脚本
         /// </summary>
         /// <returns></returns>
-        public async Task Format()
-        {
-            var formattedDocument = await Microsoft.CodeAnalysis.Formatting.Formatter.FormatAsync(
-                Workspace.GetDocument(ID)).ConfigureAwait(false);
-            Workspace.TryApplyChanges(formattedDocument.Project.Solution);
-        }
-
-        /// <summary>
-        /// 获取自动完成列表
-        /// </summary>
-        /// <param name="position"></param>
-        /// <param name="trigger"></param>
-        /// <param name="roles"></param>
-        /// <param name="options"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<CompletionList> GetCompletionsAsync(int position, CompletionTrigger trigger = default(CompletionTrigger), ImmutableHashSet<string> roles = null, OptionSet options = null, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<IEnumerable<Microsoft.CodeAnalysis.Text.TextChange>> Format()
         {
             var document = Workspace.GetDocument(ID);
-            var completionService = CompletionService.GetService(document);
-            return await completionService.GetCompletionsAsync(document, position, cancellationToken: cancellationToken);
-        }
-
-        public async Task<ImmutableArray<TaggedText>> GetDescriptionAsync(CompletionItem completionItem)
-        {
-            var document = Workspace.GetDocument(ID);
-            var completionService = CompletionService.GetService(document);
-            return (await Task.Run(async () => (await completionService.GetDescriptionAsync(document, completionItem)))).TaggedParts;
+            var formattedDocument = await Microsoft.CodeAnalysis.Formatting.Formatter.FormatAsync(document).ConfigureAwait(false);
+            return await formattedDocument.GetTextChangesAsync(document);
         }
 
         /// <summary>
@@ -224,75 +194,6 @@ namespace ScriptPad
         {
             IsChanged = true;
             Workspace.TryApplyChanges(document.Project.Solution);
-        }
-
-        /// <summary>
-        /// 注释
-        /// </summary>
-        /// <param name="selectionStart"></param>
-        /// <param name="selectionLength"></param>
-        /// <returns></returns>
-        internal async Task Comment(int selectionStart, int selectionLength)
-        {
-            const string singleLineCommentString = "//";
-            var document = Workspace.GetDocument(ID);
-
-            var span = new TextSpan(selectionStart, selectionLength);
-
-            var changes = new List<TextChange>();
-            var documentText = await document.GetTextAsync().ConfigureAwait(false);
-            var lines = documentText.Lines.SkipWhile(x => !x.Span.IntersectsWith(span))
-                .TakeWhile(x => x.Span.IntersectsWith(span)).ToArray();
-
-            foreach (var line in lines)
-            {
-                if (!string.IsNullOrWhiteSpace(documentText.GetSubText(line.Span).ToString()))
-                {
-                    changes.Add(new TextChange(new TextSpan(line.Start, 0), singleLineCommentString));
-                }
-            }
-
-            UpdateText(document.WithText(documentText.WithChanges(changes)));
-            //if (changes.Any())
-            //{
-            //    await Format().ConfigureAwait(false);
-            //}
-        }
-
-        /// <summary>
-        /// 取消注释
-        /// </summary>
-        /// <param name="selectionStart"></param>
-        /// <param name="selectionLength"></param>
-        /// <returns></returns>
-        internal async Task UnComment(int selectionStart, int selectionLength)
-        {
-            const string singleLineCommentString = "//";
-            var document = Workspace.GetDocument(ID);
-
-            var span = new TextSpan(selectionStart, selectionLength);
-
-            var changes = new List<TextChange>();
-            var documentText = await document.GetTextAsync().ConfigureAwait(false);
-            var lines = documentText.Lines.SkipWhile(x => !x.Span.IntersectsWith(span))
-                .TakeWhile(x => x.Span.IntersectsWith(span)).ToArray();
-
-            foreach (var line in lines)
-            {
-                var text = documentText.GetSubText(line.Span).ToString();
-                if (text.TrimStart().StartsWith(singleLineCommentString, StringComparison.Ordinal))
-                {
-                    changes.Add(new TextChange(new TextSpan(
-                        line.Start + text.IndexOf(singleLineCommentString, StringComparison.Ordinal),
-                        singleLineCommentString.Length), string.Empty));
-                }
-            }
-
-            UpdateText(document.WithText(documentText.WithChanges(changes)));
-            //if (changes.Any())
-            //{
-            //    await Format().ConfigureAwait(false);
-            //}
         }
 
         internal IEnumerable<MetadataReference> GetReferences()

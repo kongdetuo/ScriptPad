@@ -47,7 +47,7 @@ namespace ScriptPad.Roslyn
         /// </summary>
         public int EndColumn { get; }
 
-        private static ErrorListItem CreateErrorListItem(Diagnostic diagnostic)
+        public static ErrorListItem CreateErrorListItem(Diagnostic diagnostic)
         {
             var mappedSpan = diagnostic.Location.GetMappedLineSpan();
             ErrorSeverity errorSeverity;

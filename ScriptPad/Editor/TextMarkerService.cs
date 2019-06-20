@@ -1,6 +1,8 @@
 ﻿using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Rendering;
+using Microsoft.CodeAnalysis;
+using ScriptPad.Roslyn;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,18 +10,27 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace ScriptPad.Editor
 {
     public class TextMarkerService : IBackgroundRenderer
     {
         private readonly TextEditor textEditor;
+
+        public CsScript Script { get; set; }
+
         private readonly TextSegmentCollection<TextMarker> markers;
         private ToolTip toolTip;
 
-        public TextMarkerService(TextEditor textEditor)
+        DispatcherTimer Timer = new DispatcherTimer();
+
+        public TextMarkerService(TextEditor textEditor, CsScript script)
         {
             this.textEditor = textEditor;
+            this.Script = script;
+
+
             this.markers = new TextSegmentCollection<TextMarker>(textEditor.Document);
 
             TextView textView = textEditor.TextArea.TextView;
@@ -28,13 +39,43 @@ namespace ScriptPad.Editor
             textView.MouseHover += TextViewMouseHover;
             textView.MouseHoverStopped += TextViewMouseHoverStopped;
             textView.VisualLinesChanged += TextViewVisualLinesChanged;
+
+            Timer.Interval = TimeSpan.FromSeconds(2);
+            Timer.Tick += Timer_Tick;
+            Timer.Start();
+        }
+
+        private async void Timer_Tick(object sender, EventArgs e)
+        {
+            var document = textEditor.Document;
+
+            Clear();
+            var diagnostics = await Script.GetDiagnostics();
+
+            var listItems = diagnostics
+                .Where(x => x.Severity != DiagnosticSeverity.Hidden)
+                .Select(ErrorListItem.CreateErrorListItem);
+
+            foreach (var item in listItems)
+            {
+                if (item.ErrorSeverity == ErrorSeverity.Info)
+                    continue;
+
+                var startOffset = document.GetOffset(new TextLocation(item.StartLine + 1, item.StartColumn + 1));
+                var endOffset = document.GetOffset(new TextLocation(item.EndLine + 1, item.EndColumn + 1));
+
+                if (item.ErrorSeverity == ErrorSeverity.Error)
+                    Create(startOffset, endOffset - startOffset, item.Description, Colors.Red);
+                else
+                    Create(startOffset, endOffset - startOffset, item.Description, Colors.DarkGreen);
+            }
         }
 
         public KnownLayer Layer => KnownLayer.Selection;
 
-        public void Create(int offset, int length, string message)
+        public void Create(int offset, int length, string message, Color color)
         {
-            var marker = new TextMarker(offset, length, message, Colors.Red);
+            var marker = new TextMarker(offset, length, message, color);
             markers.Add(marker);
             textEditor.TextArea.TextView.Redraw(marker);
         }
@@ -138,10 +179,10 @@ namespace ScriptPad.Editor
 
         private void TextViewVisualLinesChanged(object sender, EventArgs e)
         {
-            if (toolTip != null)
-            {
-                toolTip.IsOpen = false;
-            }
+            //if (toolTip != null)
+            //{
+            //    toolTip.IsOpen = false;
+            //}
         }
 
         private static IEnumerable<Point> CreatePoints(Point start, double offset, int count)
