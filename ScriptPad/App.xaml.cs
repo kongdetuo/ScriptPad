@@ -17,7 +17,8 @@ namespace ScriptPad
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             ScriptGlobals.InitAssemblies = new List<System.Reflection.Assembly>();
-            ScriptGlobals.InitAssemblies.Add(typeof(object).Assembly);
+            ScriptGlobals.InitAssemblies.Add(typeof(System.Object).Assembly);
+            ScriptGlobals.InitAssemblies.Add(typeof(System.Console).Assembly);
         }
     }
 }
